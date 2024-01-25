@@ -1,0 +1,173 @@
+//Steps to duplicate and deploy this code for another account/bot application
+//1. Copy this code and paste it into google script code editor
+//2. Deploy the script as a web app, copy the URL of the web app upon deploying, replace the webAppURL variable value with it.
+//3. Change the token variable (to the token of the telegram bot you are intending to use)
+//4. Run the getMe function, check log to verify success
+//5. Run the doGet function
+//6. Change the spreadsheet ID in line 40 to whatever ID of the spreadsheet that you intend to use.
+
+var token = "5296817728:AAEK9Ozi8APkSZ243hu0kuNlNw4QOYEZR6s"  //telegram bot token
+var telegramURL = "https://api.telegram.org/bot" + token;  //proper telegram web URL pointing to the bot
+var webAppURL = "https://script.google.com/macros/s/AKfycbxGFCoYNYsNVWHP3A0KsxXt5-XV6fgofgeEB5-myvVW-ONqah5mNr5dzbmyRCOBIKqq/exec"
+// webURL for the google script webApp (script has to be deployed as a webApp to have a webURL to communicate with telegram)
+
+function getMe(){     //testing functio to check that the bot used is correct 
+  var url = telegramURL + "/getMe";
+  var response = UrlFetchApp.fetch(url);
+  Logger.log(response.getContentText())
+}
+
+function setWebHook() {   //only needs to run once, hooks this google script web application to the telegram bot
+  var url = telegramURL + "/setWebhook?url=" + webAppURL;
+  var response = UrlFetchApp.fetch(url);
+  Logger.log(response.getContentText())
+}
+
+function doGet(e){   //has to run once for every web app, nothing substantial in this function, it just needs to exist for the webapp to be properly functioning.
+  return HtmlService.createHtmlOutput("hi there")
+}
+
+function sendMessageWithKeyboard(id, text, keyBoard) {    //function to send messages in telegram, message itself as the second parameter 
+  var data = {
+  method: "post",
+  payload: {
+    method: "sendMessage",
+    chat_id : String(id), 
+    text: text,
+    parse_mode: "HTML",
+    reply_markup: JSON.stringify(keyBoard)
+  }
+  };
+  UrlFetchApp.fetch("https://api.telegram.org/bot" + token + "/", data);  //sends message with inline keyboard
+}
+
+function sendMessage(id,text){  //sends message without inline keyboard
+  var url = telegramURL + "/sendMessage?chat_id=" + id + "&text=" + text;
+  var response = UrlFetchApp.fetch(url)
+}
+
+function doPost(e){
+  var contents = JSON.parse(e.postData.contents);   //gets contents attribute from "e" object(contains user input and its corresponding contents)
+  var spreadsheet = SpreadsheetApp.openById("1JhbWwYlEDVOW0Jg5NC6MUAxP57jralbZfCowN4WQMQY");
+
+  var keyBoard = {   //inline keyboard layouts to be used for different cases of message
+    "inline_keyboard": [
+    [{
+      "text": "Pre ICT",
+        'callback_data': 'Pre ICT'
+      }],
+    [{
+      "text": "During ICT",
+      'callback_data': 'During ICT'
+    }],
+      [{
+      "text": "Post ICT",
+      'callback_data': 'Post ICT'
+      }]
+     ]
+  };
+
+  var keyBoard2 = {
+    "inline_keyboard": [
+    [{
+      "text": "Account Setup Guide",
+        'callback_data': 'Account Setup Guide'
+      }],
+    [{
+      "text": "Report Sick",
+      'callback_data': 'Report Sick'
+    }],
+      [{
+      "text": "Main Menu",
+      'callback_data': 'Main Menu'
+      }]
+     ]
+  };
+
+  var keyBoard3 = {
+    "inline_keyboard": [
+    [{
+      "text": "High-Key ICT",
+        'callback_data': 'High-Key ICT'
+      }],
+    [{
+      "text": "Low-Key ICT",
+      'callback_data': 'Low-Key ICT'
+    }],
+      [{
+      "text": "Main Menu",
+      'callback_data': 'Main Menu'
+      }]
+     ]
+  };
+
+  /*var id = contents.message.from.id;
+  var text = contents.message.text;
+  var first_name = contents.message.from.first_name;
+  sendMessage(id, "hello there " + first_name);
+  if (text == "Pre ICT"){
+    sendMessage(id, spreadsheet.getRange("A2").getValue())
+  }
+  else if (text == "During ICT") {
+    sendMessage(id, spreadsheet.getRange("B2").getValue())
+  }
+
+  else if (text == "Post ICT") {
+    sendMessage(id, spreadsheet.getRange("C2").getValue())
+  }
+  else if (text == "/start") {
+    sendMessage(id,spreadsheet.getRange("D2").getValue())
+    return sendMessageWithKeyboard(id,"Please select from one of these options", keyBoard);
+  }*/
+
+  if (contents.callback_query) {  //"case" for if the return value in doPost(e) is a response from inline keyboard, doPost(e) can only accept one type of
+     var id_callback = contents.callback_query.from.id;    //input at a time, so two cases are needed for the response, keyboard responses and text messages
+     var data = contents.callback_query.data;
+     //sendMessage(id_callback,"button has been pressed on inline keyboard")
+     if (data == "Pre ICT"){   //different cases for different keyboard responses
+      sendMessageWithKeyboard(id_callback, spreadsheet.getRange("A2").getValue(),keyBoard) //inline keyboard type should differ based on the message
+      }
+     else if (data == "During ICT") {
+      sendMessageWithKeyboard(id_callback, spreadsheet.getRange("B2").getValue(),keyBoard2)
+      }
+
+     else if (data == "Post ICT") {
+      sendMessageWithKeyboard(id_callback, spreadsheet.getRange("C2").getValue(),keyBoard3)
+      }
+
+     else if (data == "Main Menu") {
+      sendMessageWithKeyboard(id_callback, "Please select from one of these options",keyBoard)
+      }
+
+     else if (data == "Account Setup Guide") {
+      sendMessageWithKeyboard(id_callback, spreadsheet.getRange("E2").getValue(),keyBoard2)
+      }
+
+     else if (data == "Report Sick") {
+      sendMessageWithKeyboard(id_callback, spreadsheet.getRange("G2").getValue(),keyBoard2)
+      }
+
+     else if (data == "High-Key ICT") {
+      sendMessageWithKeyboard(id_callback, spreadsheet.getRange("H2").getValue(),keyBoard3)
+      }
+
+     else if (data == "Low-Key ICT") {
+      sendMessageWithKeyboard(id_callback, spreadsheet.getRange("I2").getValue(),keyBoard3)
+      }
+
+    }
+
+  else if (contents.message){
+    var id_message = contents.message.from.id; 
+    var text = contents.message.text; 
+    var firstName = contents.message.from.first_name;
+    if (text == "/start") {
+      sendMessage(id_message,spreadsheet.getRange("D2").getValue())
+      return sendMessageWithKeyboard(id_message,"Please select from one of these options", keyBoard);
+    }  
+  }
+}
+
+
+
+
